@@ -10,7 +10,7 @@ uniform vec3 viewPos;
 uniform vec3 lightColor;
 uniform vec3 objectColor;
 uniform float shellHeight;
-uniform sampler2D furTexture;
+uniform sampler2D furTextures[5]; // Массив из 5 текстур
 
 void main()
 {
@@ -28,20 +28,19 @@ void main()
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
     vec3 specular = spec * lightColor;
     
-    // Ослабление с высотой слоя (кончики волос темнее)
-    float heightAttenuation = shellHeight;
+    // Выбираем текстуру в зависимости от высоты слоя
+    int texIndex = int(shellHeight * 5.0);
+    texIndex = clamp(texIndex, 0, 4);
     
-    // Текстура меха для прозрачности
-    float alpha = texture(furTexture, TexCoord).r;
+    float alpha = texture(furTextures[texIndex], TexCoord).r;
     
-    // Уменьшаем альфа-канал для верхних слоев
-    alpha *= (1.0 - shellHeight * 0.9);
+    // Дополнительное уменьшение прозрачности для верхних слоев
+    alpha *= (1.0 - shellHeight * 0.5);
     
-    // Если альфа слишком мала, отбрасываем пиксель
-    // if(alpha < 0.1)
-    //    discard;
+    if (alpha < 0.1)
+        discard;
     
-    // Финальный цвет с учетом освещения и прозрачности
-    vec3 result = (diffuse + specular) * objectColor * heightAttenuation;
+    // Финальный цвет
+    vec3 result = (diffuse + specular) * objectColor * shellHeight;
     FragColor = vec4(result, alpha);
 }

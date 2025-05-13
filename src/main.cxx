@@ -34,20 +34,42 @@ float lastFrame = 0.0f;
 
 
 // Генерация простой меховой текстуры
-GLuint generateFurTexture(int width = 512, int height = 512) {
-    std::vector<unsigned char> data(width * height);
+// Генерация меховой текстуры с заданным размером точек
+GLuint generateFurTexture(int width, int height, float dotSize) {
+    srand(0);
+    std::vector<unsigned char> data(width * height, 0);
     
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            // Создаем шумоподобный паттерн с преобладанием темных областей
-            float value = (rand() % 100) / 100.0f;
-            value = pow(value, 3.0f); // Делаем больше темных областей
-            
-            // Добавляем некоторую направленность (имитация роста волос)
-            float directionFactor = 1.0f - (float)y / height;
-            value *= directionFactor;
-            
-            data[y * width + x] = static_cast<unsigned char>(value * 255);
+    // Количество точек
+    int numDots = (width * height) / 100; // Примерное количество
+    
+    for (int i = 0; i < numDots; ++i) {
+        int centerX = rand() % width;
+        int centerY = rand() % height;
+        
+        // Размер точки с небольшими вариациями
+        float currentDotSize = dotSize * (0.8f + 0.4f * (rand() % 100) / 100.0f);
+        int radius = static_cast<int>(currentDotSize * std::min(width, height) / 2);
+        
+        // Рисуем круглую точку
+        for (int dy = -radius; dy <= radius; ++dy) {
+            for (int dx = -radius; dx <= radius; ++dx) {
+                if (dx*dx + dy*dy <= radius*radius) {
+                    int px = (centerX + dx + width) % width;
+                    int py = (centerY + dy + height) % height;
+                    
+                    // Плавное затухание к краям
+                    float dist = sqrtf(dx*dx + dy*dy) / radius;
+                    float value = 1.0f - dist * dist;
+                    
+                    // Учитываем направленность (имитация роста волос)
+                    value *= 1.0f - (float)py / height * 0.5f;
+                    
+                    // Смешиваем с уже существующим значением
+                    float oldValue = data[py * width + px] / 255.0f;
+                    value = std::max(oldValue, value);
+                    data[py * width + px] = static_cast<unsigned char>(value * 255);
+                }
+            }
         }
     }
     
@@ -179,7 +201,15 @@ int main() {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     
     // Создание меховой текстуры
-    GLuint furTexture = generateFurTexture();
+    const int NUM_FUR_TEXTURES = 5;
+    GLuint* furTextures = new GLuint[NUM_FUR_TEXTURES];
+
+    // Размеры точек для каждой текстуры (от самой крупной до самой мелкой)
+    float dotSizes[NUM_FUR_TEXTURES] = {0.008f, 0.006f, 0.004f, 0.002f, 0.0002f};
+
+    for (int i = 0; i < NUM_FUR_TEXTURES; ++i) {
+        furTextures[i] = generateFurTexture(2048, 2048, dotSizes[i]);
+    }
 
     // Компиляция шейдеров
     Shader shader("fur_shader.verx", "fur_shader.frag");
@@ -217,7 +247,7 @@ int main() {
     
     // Параметры рендеринга
     const int SHELL_LAYERS = 128;
-    const float FUR_LENGTH = 0.1f;
+    const float FUR_LENGTH = 0.2f;
     
     // Основной цикл рендеринга
     while (!glfwWindowShouldClose(window)) {
@@ -260,12 +290,17 @@ int main() {
         shader.setVec3("viewPos", viewPos);
         shader.setVec3("lightColor", lightColor);
         shader.setVec3("objectColor", objectColor);
+        shader.setFloat("furLength", FUR_LENGTH);
         
         // Привязка текстуры
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, furTexture);
-        shader.setInt("furTexture", 0);
         
+        for (int i = 0; i < NUM_FUR_TEXTURES; ++i) {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, furTextures[i]);
+            shader.setInt(("furTextures[" + std::to_string(i) + "]").c_str(), i);
+        }
+
         // Рендеринг слоев меха (shell-texturing)
         glBindVertexArray(VAO);
         for (int i = 0; i < SHELL_LAYERS; ++i) {
@@ -285,7 +320,10 @@ int main() {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
-    glDeleteTextures(1, &furTexture);
+    for (int i = 0; i < NUM_FUR_TEXTURES; ++i) {
+      glDeleteTextures(1, &furTextures[i]);
+    }
+    delete [] furTextures;
     
     glfwTerminate();
     return 0;
