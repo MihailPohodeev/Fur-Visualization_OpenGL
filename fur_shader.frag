@@ -36,6 +36,12 @@ void main()
     
     // Дополнительное уменьшение прозрачности для верхних слоев
     alpha *= (1.0 - shellHeight * 0.5);
+
+    if (shellHeight < 0.001)
+    {
+        FragColor = vec4(0.0, 0.05, 0.0, 1.0);
+	return;
+    } 
     
     if (alpha < 0.1)
         discard;
