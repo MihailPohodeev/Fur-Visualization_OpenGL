@@ -33,38 +33,36 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 
-// Генерация простой меховой текстуры
-// Генерация меховой текстуры с заданным размером точек
+// generation of simple fur texture.
 GLuint generateFurTexture(int width, int height, float dotSize) {
     srand(0);
     std::vector<unsigned char> data(width * height, 0);
     
-    // Количество точек
-    int numDots = (width * height) / 100; // Примерное количество
+    // count of dots.
+    int numDots = (width * height) / 100;
     
     for (int i = 0; i < numDots; ++i) {
         int centerX = rand() % width;
         int centerY = rand() % height;
         
-        // Размер точки с небольшими вариациями
+        // size of point with some variations.
         float currentDotSize = dotSize * (0.8f + 0.4f * (rand() % 100) / 100.0f);
         int radius = static_cast<int>(currentDotSize * std::min(width, height) / 2);
         
-        // Рисуем круглую точку
+        // Draw round dot.
         for (int dy = -radius; dy <= radius; ++dy) {
             for (int dx = -radius; dx <= radius; ++dx) {
                 if (dx*dx + dy*dy <= radius*radius) {
                     int px = (centerX + dx + width) % width;
                     int py = (centerY + dy + height) % height;
                     
-                    // Плавное затухание к краям
+                    // Smooth fade to the edges.
                     float dist = sqrtf(dx*dx + dy*dy) / radius;
                     float value = 1.0f - dist * dist;
                     
-                    // Учитываем направленность (имитация роста волос)
                     value *= 1.0f - (float)py / height * 0.5f;
                     
-                    // Смешиваем с уже существующим значением
+		    // mixing with existing values.
                     float oldValue = data[py * width + px] / 255.0f;
                     value = std::max(oldValue, value);
                     data[py * width + px] = static_cast<unsigned char>(value * 255);
@@ -85,7 +83,7 @@ GLuint generateFurTexture(int width, int height, float dotSize) {
     return textureID;
 }
 
-// Создание простой сферы для демонстрации
+// create simple sphere for demonstration.
 void createSphere(std::vector<float>& vertices, std::vector<unsigned int>& indices, 
                  float radius = 1.0f, int sectors = 36, int stacks = 18) {
     const float PI = 3.1415926f;
@@ -106,20 +104,20 @@ void createSphere(std::vector<float>& vertices, std::vector<unsigned int>& indic
         for(int j = 0; j <= sectors; ++j) {
             sectorAngle = j * sectorStep;
             
-            // Позиция вершины
+            // position of vertex.
             x = xy * cosf(sectorAngle);
             y = xy * sinf(sectorAngle);
             
-            // Нормаль
+            // normal.
             nx = x * lengthInv;
             ny = y * lengthInv;
             nz = z * lengthInv;
             
-            // Текстурные координаты
+            // texture coords.
             s = (float)j / sectors;
             t = (float)i / stacks;
             
-            // Добавляем вершину
+            // add the vertex.
             vertices.push_back(x);
             vertices.push_back(y);
             vertices.push_back(z);
@@ -131,7 +129,7 @@ void createSphere(std::vector<float>& vertices, std::vector<unsigned int>& indic
         }
     }
     
-    // Генерация индексов
+    // indexes generation.
     for(int i = 0; i < stacks; ++i) {
         int k1 = i * (sectors + 1);
         int k2 = k1 + sectors + 1;
@@ -153,7 +151,7 @@ void createSphere(std::vector<float>& vertices, std::vector<unsigned int>& indic
 }
 
 int main() {
-    // glfw: initialize and configure
+    // glfw: initialize and configure.
     // ------------------------------
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -164,7 +162,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    // glfw window creation
+    // glfw window creation.
     // --------------------
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
@@ -178,10 +176,10 @@ int main() {
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
-    // tell GLFW to capture our mouse
+    // tell GLFW to capture our mouse.
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    // glad: load all OpenGL function pointers
+    // glad: load all OpenGL function pointers.
     // ---------------------------------------
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -194,32 +192,30 @@ int main() {
 
 
 
-    // Настройка OpenGL
+    // setting OpenGL
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     
-    // Создание меховой текстуры
+    // create fur texture.
     const int NUM_FUR_TEXTURES = 5;
     GLuint* furTextures = new GLuint[NUM_FUR_TEXTURES];
 
-    // Размеры точек для каждой текстуры (от самой крупной до самой мелкой)
+    // sizes of dots for each of textures.
     float dotSizes[NUM_FUR_TEXTURES] = {0.008f, 0.006f, 0.004f, 0.002f, 0.0002f};
 
     for (int i = 0; i < NUM_FUR_TEXTURES; ++i) {
         furTextures[i] = generateFurTexture(2048, 2048, dotSizes[i]);
     }
 
-    // Компиляция шейдеров
     Shader shader("fur_shader.verx", "fur_shader.frag");
     
-    // Создание сферы
+    // Sphere creation
     std::vector<float> sphereVertices;
     std::vector<unsigned int> sphereIndices;
     createSphere(sphereVertices, sphereIndices);
     
-    // Настройка VAO/VBO для сферы
     GLuint VAO, VBO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -233,23 +229,22 @@ int main() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sphereIndices.size() * sizeof(unsigned int), sphereIndices.data(), GL_STATIC_DRAW);
     
-    // Позиции
+    // positions.
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    // Нормали
+    // normals.
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    // Текстурные координаты
+    // texture coords.
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
     
     glBindVertexArray(0);
     
-    // Параметры рендеринга
+    // rendering params.
     const int SHELL_LAYERS = 128;
     const float FUR_LENGTH = 0.2f;
     
-    // Основной цикл рендеринга
     while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
         // --------------------
@@ -269,21 +264,19 @@ int main() {
         // don't forget to enable shader before setting uniforms
         shader.use();
         
-        // Вращение модели
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 300.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        // model = glm::rotate(model, (float)glfwGetTime() * 0.3f, glm::vec3(0.0f, 1.0f, 0.0f));
+        model = glm::rotate(model, (float)glfwGetTime() * 0.3f, glm::vec3(0.0f, 1.0f, 0.0f));
         
-        // Настройка освещения
+        // illumination
         glm::vec3 lightPos(5.0f, 5.0f, 5.0f);
         glm::vec3 viewPos(3.0f, 3.0f, 3.0f);
         glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
-        glm::vec3 objectColor(0.8f, 0.6f, 0.4f); // Цвет меха
+        glm::vec3 objectColor(0.8f, 0.6f, 0.4f); // fur color.
         
         
         
-        // Передача uniform-переменных
         shader.setMat4("view", view);
         shader.setMat4("projection", projection);
         shader.setVec3("lightPos", lightPos);
@@ -292,7 +285,7 @@ int main() {
         shader.setVec3("objectColor", objectColor);
         shader.setFloat("furLength", FUR_LENGTH);
         
-        // Привязка текстуры
+        // texture binding.
         glActiveTexture(GL_TEXTURE0);
         
         for (int i = 0; i < NUM_FUR_TEXTURES; ++i) {
@@ -301,7 +294,7 @@ int main() {
             shader.setInt(("furTextures[" + std::to_string(i) + "]").c_str(), i);
         }
 
-        // Рендеринг слоев меха (shell-texturing)
+        // rendering all layers (shell-texturing).
         glBindVertexArray(VAO);
         for (int i = 0; i < SHELL_LAYERS; ++i) {
             float shellHeight = (float)i / SHELL_LAYERS;
@@ -316,7 +309,7 @@ int main() {
         glfwPollEvents();
     }
     
-    // Очистка
+    // clear.
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
