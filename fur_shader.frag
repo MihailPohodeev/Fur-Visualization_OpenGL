@@ -11,6 +11,7 @@ uniform vec3 lightColor;
 uniform vec3 objectColor;
 uniform float shellHeight;
 uniform sampler2D furTextures[5]; // Массив из 5 текстур
+uniform sampler2D modelTexture;
 
 void main()
 {
@@ -40,7 +41,8 @@ void main()
     if (alpha < 0.1)
         discard;
     
+    vec3 textureColor = texture(modelTexture, TexCoord).xyz;
     // Финальный цвет
-    vec3 result = (diffuse + specular) * objectColor * shellHeight;
+    vec3 result = (diffuse + specular) * textureColor * shellHeight;
     FragColor = vec4(result, alpha);
 }

@@ -39,7 +39,7 @@ GLuint generateFurTexture(int width, int height, float dotSize) {
     std::vector<unsigned char> data(width * height, 0);
     
     // count of dots.
-    int numDots = (width * height) / 100;
+    int numDots = (width * height) / 10;
     
     for (int i = 0; i < numDots; ++i) {
         int centerX = rand() % width;
@@ -150,6 +150,40 @@ void createSphere(std::vector<float>& vertices, std::vector<unsigned int>& indic
     }
 }
 
+GLuint loadTexture(const char* path) {
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+    unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
+
+    if (data) {
+        GLenum format;
+        if (nrComponents == 1)
+            format = GL_RED;
+        else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    } else {
+        std::cout << "Failed to load texture: " << path << std::endl;
+        stbi_image_free(data);
+    }
+
+    return textureID;
+}
+
 int main() {
     // glfw: initialize and configure.
     // ------------------------------
@@ -203,47 +237,21 @@ int main() {
     GLuint* furTextures = new GLuint[NUM_FUR_TEXTURES];
 
     // sizes of dots for each of textures.
-    float dotSizes[NUM_FUR_TEXTURES] = {0.008f, 0.006f, 0.004f, 0.002f, 0.0002f};
+    float dotSizes[NUM_FUR_TEXTURES] = {0.004f, 0.003f, 0.002f, 0.001f, 0.0001f};
 
     for (int i = 0; i < NUM_FUR_TEXTURES; ++i) {
         furTextures[i] = generateFurTexture(2048, 2048, dotSizes[i]);
     }
 
     Shader shader("fur_shader.verx", "fur_shader.frag");
-    
-    // Sphere creation
-    std::vector<float> sphereVertices;
-    std::vector<unsigned int> sphereIndices;
-    createSphere(sphereVertices, sphereIndices);
-    
-    GLuint VAO, VBO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    
-    glBindVertexArray(VAO);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sphereVertices.size() * sizeof(float), sphereVertices.data(), GL_STATIC_DRAW);
-    
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sphereIndices.size() * sizeof(unsigned int), sphereIndices.data(), GL_STATIC_DRAW);
-    
-    // positions.
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    // normals.
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    // texture coords.
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    
-    glBindVertexArray(0);
+
+    Model obj_model("./assets/tiger.obj");
+
+    GLuint modelTexture = loadTexture("assets/tiger.jpg");
     
     // rendering params.
     const int SHELL_LAYERS = 128;
-    const float FUR_LENGTH = 0.2f;
+    const float FUR_LENGTH = 0.075f;
     
     while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
@@ -261,22 +269,20 @@ int main() {
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // don't forget to enable shader before setting uniforms
         shader.use();
         
         glm::mat4 model = glm::mat4(1.0f);
+	//model = glm::scale(model, glm::vec3(0.1, 0.1, 0.1));
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 300.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        model = glm::rotate(model, (float)glfwGetTime() * 0.3f, glm::vec3(0.0f, 1.0f, 0.0f));
+        //model = glm::rotate(model, -3.14f / 2, glm::vec3(1.0f, 0.0f, 0.0f));
         
         // illumination
-        glm::vec3 lightPos(5.0f, 5.0f, 5.0f);
+        glm::vec3 lightPos(15.0f, 15.0f, 15.0f);
         glm::vec3 viewPos(3.0f, 3.0f, 3.0f);
         glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
         glm::vec3 objectColor(0.8f, 0.6f, 0.4f); // fur color.
-        
-        
-        
+	 
         shader.setMat4("view", view);
         shader.setMat4("projection", projection);
         shader.setVec3("lightPos", lightPos);
@@ -294,25 +300,24 @@ int main() {
             shader.setInt(("furTextures[" + std::to_string(i) + "]").c_str(), i);
         }
 
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_2D, modelTexture);
+	shader.setInt("modelTexture", 5);
+
         // rendering all layers (shell-texturing).
-        glBindVertexArray(VAO);
         for (int i = 0; i < SHELL_LAYERS; ++i) {
             float shellHeight = (float)i / SHELL_LAYERS;
             shader.setFloat("shellHeight", shellHeight);
             shader.setMat4("model", model);
             
-            glDrawElements(GL_TRIANGLES, sphereIndices.size(), GL_UNSIGNED_INT, 0);
+            obj_model.Draw(shader);
         }
-        glBindVertexArray(0);
         
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
     
     // clear.
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
     for (int i = 0; i < NUM_FUR_TEXTURES; ++i) {
       glDeleteTextures(1, &furTextures[i]);
     }
