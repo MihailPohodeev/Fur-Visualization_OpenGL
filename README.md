@@ -4,8 +4,8 @@ Fur-Visualization is a program that allows you to visualize fur using OpenGL and
 
 # Result
 
-![fur visualization](./repo_media/visualization1.gif)
-![fur visualization](./repo_media/visualization2.gif)
+![fur visualization](./repo_media/visualization_1.png)
+![fur visualization](./repo_media/visualization_2.png)
 
 # Build
 
