@@ -12,6 +12,7 @@ uniform vec3 objectColor;
 uniform float shellHeight;
 uniform sampler2D furTextures[5]; // Массив из 5 текстур
 uniform sampler2D modelTexture;
+uniform sampler2D furMapTexture;
 
 void main()
 {
@@ -29,10 +30,20 @@ void main()
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
     vec3 specular = spec * lightColor;
     
+
+    float lengthCoeff = texture(furMapTexture, TexCoord).y;
+    if (shellHeight < 0.001)
+    {
+	vec4 textureColor = texture(modelTexture, TexCoord);
+	// Final color.
+	vec3 result = (diffuse + specular) * textureColor.xyz * 0.5;
+	FragColor = vec4(result, textureColor.w);
+	return;
+    }
+
     // Выбираем текстуру в зависимости от высоты слоя
-    int texIndex = int(shellHeight * 5.0);
+    int texIndex = int( (shellHeight / lengthCoeff) * 5.0 );
     texIndex = clamp(texIndex, 0, 4);
-    
     float alpha = texture(furTextures[texIndex], TexCoord).r;
     
     // Дополнительное уменьшение прозрачности для верхних слоев
@@ -41,8 +52,13 @@ void main()
     if (alpha < 0.1)
         discard;
     
-    vec3 textureColor = texture(modelTexture, TexCoord).xyz;
-    // Финальный цвет
-    vec3 result = (diffuse + specular) * textureColor * shellHeight;
-    FragColor = vec4(result, alpha);
+    if (shellHeight < lengthCoeff)
+    {
+	    vec3 textureColor = texture(modelTexture, TexCoord).xyz;
+	    // Final color.
+	    vec3 result = (diffuse + specular) * textureColor * (shellHeight / lengthCoeff);
+	    FragColor = vec4(result, alpha);
+    }
+    else
+    	    FragColor = vec4(0.0);
 }

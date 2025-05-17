@@ -247,7 +247,8 @@ int main() {
 
     Model obj_model("./assets/tiger.obj");
 
-    GLuint modelTexture = loadTexture("assets/tiger.jpg");
+    GLuint modelTexture   = loadTexture("assets/tiger.jpg");
+    GLuint furMapTexture  = loadTexture("assets/tiger_fur_map.png");
     
     // rendering params.
     const int SHELL_LAYERS = 128;
@@ -303,6 +304,10 @@ int main() {
 	glActiveTexture(GL_TEXTURE5);
 	glBindTexture(GL_TEXTURE_2D, modelTexture);
 	shader.setInt("modelTexture", 5);
+
+        glActiveTexture(GL_TEXTURE6);
+	glBindTexture(GL_TEXTURE_2D, furMapTexture);
+	shader.setInt("furMapTexture", 6);
 
         // rendering all layers (shell-texturing).
         for (int i = 0; i < SHELL_LAYERS; ++i) {
