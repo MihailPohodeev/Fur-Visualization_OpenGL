@@ -39,7 +39,7 @@ GLuint generateFurTexture(int width, int height, float dotSize) {
     std::vector<unsigned char> data(width * height, 0);
     
     // count of dots.
-    int numDots = (width * height) / 1000;
+    int numDots = (width * height) / 10;
     
     for (int i = 0; i < numDots; ++i) {
         int centerX = rand() % width;
@@ -203,7 +203,7 @@ int main() {
     GLuint* furTextures = new GLuint[NUM_FUR_TEXTURES];
 
     // sizes of dots for each of textures.
-    float dotSizes[NUM_FUR_TEXTURES] = {0.016f, 0.012f, 0.008f, 0.004f, 0.0008f};
+    float dotSizes[NUM_FUR_TEXTURES] = {0.002f, 0.001f, 0.0005f, 0.00025f, 0.000125f};
 
     for (int i = 0; i < NUM_FUR_TEXTURES; ++i) {
         furTextures[i] = generateFurTexture(2048, 2048, dotSizes[i]);
@@ -242,8 +242,8 @@ int main() {
     glBindVertexArray(0);
     
     // rendering params.
-    const int SHELL_LAYERS = 128;
-    const float FUR_LENGTH = 0.5f;
+    const int SHELL_LAYERS = 64;
+    const float FUR_LENGTH = 0.3f;
     
     while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
@@ -273,7 +273,7 @@ int main() {
         glm::vec3 lightPos(5.0f, 5.0f, 5.0f);
         glm::vec3 viewPos(3.0f, 3.0f, 3.0f);
         glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
-        glm::vec3 objectColor(0.2f, 0.9f, 0.3f); // fur color.
+        glm::vec3 objectColor(0.8f, 0.7f, 0.3f); // fur color.
         
         
         

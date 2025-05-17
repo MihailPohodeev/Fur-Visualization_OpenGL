@@ -39,7 +39,7 @@ void main()
 
     if (shellHeight < 0.001)
     {
-        FragColor = vec4(0.0, 0.05, 0.0, 1.0);
+        FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 	return;
     } 
     
